@@ -29,7 +29,13 @@ defmodule GeoIP.Lookup do
   defp put_in_cache(result, _), do: result
 
   defp parse_response({:ok, %HTTPoison.Response{status_code: 200, body: body}}) do
-    {:ok, Poison.decode!(body, as: %Location{})}
+    json_result = Poison.decode!(body)
+
+    if !Map.get(json_result, "success") == false do
+      {:error, %Error{reason: body}}
+    else
+      {:ok, Poison.decode!(body, as: %Location{})}
+    end
   end
 
   defp parse_response({:ok, %HTTPoison.Response{status_code: _, body: body}}) do
@@ -44,5 +50,5 @@ defmodule GeoIP.Lookup do
     {:error, %Error{reason: "Error looking up host: #{inspect(result)}"}}
   end
 
-  defp lookup_url(host), do: "#{Config.base_url}/json/#{host}"
+  defp lookup_url(host), do: "#{Config.base_url}/#{host}?access_key=#{Config.api_access_key}&legacy=1"
 end
